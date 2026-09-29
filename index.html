@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Komputer Alur Proses - Informatika SMP Fase D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            primary: '#3b82f6',
+                            dark: '#1e293b'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s infinite',
+                        'bounce-soft': 'bounce 2s infinite',
+                        'float': 'float 4s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .data-particle {
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-blue-200">
+
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- MAIN CONTAINER -->
+    <div id="app" class="min-h-screen flex flex-col justify-between relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white">
+
+        <!-- TOP HEADER BAR (Visible during Materi & Kuis) -->
+        <header id="main-header" class="hidden sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 sm:px-8">
+            <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <button onclick="goToSection('opening')" class="flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-all border border-slate-700" title="Kembali ke Beranda">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        <span class="hidden xs:inline">Beranda</span>
+                    </button>
+                    <div>
+                        <h1 class="text-xs sm:text-sm font-bold text-blue-400 tracking-wide uppercase">Informatika SMP Fase D</h1>
+                        <h2 class="text-sm sm:text-base font-extrabold text-white leading-tight" id="header-title">SISTEM KOMPUTER ALUR PROSES</h2>
+                    </div>
+                </div>
+
+                <!-- Center/Right Controls -->
+                <div class="flex items-center gap-3 ml-auto">
+                    <!-- Progress Bar / Indicator -->
+                    <div id="slide-progress-container" class="hidden sm:flex flex-col items-end mr-2">
+                        <span id="slide-indicator" class="text-xs font-semibold text-slate-400">Slide 1 dari 10</span>
+                        <div class="w-32 bg-slate-800 rounded-full h-2 mt-1 overflow-hidden border border-slate-700">
+                            <div id="slide-progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300 w-1/10"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Mute Toggle -->
+                    <button onclick="toggleAudio()" id="audio-btn" class="p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700" title="Efek Suara">
+                        <svg id="audio-icon-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"/></svg>
+                        <svg id="audio-icon-off" class="w-5 h-5 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" stroke-dasharray="2 2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+                    </button>
+
+                    <!-- Fullscreen Toggle Button -->
+                    <button onclick="toggleFullscreen()" class="p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition border border-slate-700" title="Layar Penuh">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- SECTION 1: OPENING -->
+        <section id="sec-opening" class="flex-1 flex flex-col justify-center items-center px-4 py-8 text-center relative overflow-hidden">
+            <!-- Animated Background Glows -->
+            <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute bottom-1/4 left-1/3 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="max-w-3xl mx-auto z-10 flex flex-col items-center">
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 font-semibold text-xs sm:text-sm mb-6 animate-pulse-slow">
+                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                    Media Pembelajaran Interaktif Informatika – SMP Fase D
+                </div>
+
+                <!-- Title -->
+                <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-4 leading-tight">
+                    SISTEM KOMPUTER <br/>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400">ALUR PROSES</span>
+                </h1>
+
+                <p class="text-base sm:text-lg text-slate-300 max-w-2xl mb-8 leading-relaxed">
+                    Pernahkah kamu penasaran apa yang terjadi di dalam komputer saat menekan tombol kalkulator atau tombol lompat dalam gim? Yuk, "mengintip dapur" komputer dan pelajari bagaimana CPU memproses miliaran data setiap detik!
+                </p>
+
+                <!-- Interactive CPU Animation Graphic -->
+                <div class="relative w-64 h-48 sm:w-80 sm:h-56 bg-slate-800/80 rounded-2xl border border-slate-700/80 p-4 mb-8 flex flex-col items-center justify-center shadow-2xl backdrop-blur-md group hover:border-blue-500/50 transition-all duration-300">
+                    <div class="flex items-center justify-between w-full mb-3 px-2">
+                        <span class="text-xs font-mono text-slate-400 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            SYSTEM ACTIVE
+                        </span>
+                        <span class="text-xs font-mono text-blue-400">INPUT &rarr; PROSES &rarr; OUTPUT</span>
+                    </div>
+
+                    <!-- CPU Chip Illustration -->
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl border-2 border-blue-400/60 p-2 flex flex-col items-center justify-center relative shadow-lg group-hover:scale-105 transition-transform duration-300">
+                        <div class="text-blue-300 font-extrabold text-sm sm:text-base tracking-wider">CPU</div>
+                        <div class="text-[10px] text-slate-400">Sang Otak</div>
+                        <div class="grid grid-cols-2 gap-1 mt-2 w-full text-[9px] text-center font-mono">
+                            <span class="bg-blue-900/60 text-blue-200 py-0.5 rounded border border-blue-500/30">ALU</span>
+                            <span class="bg-indigo-900/60 text-indigo-200 py-0.5 rounded border border-indigo-500/30">CU</span>
+                        </div>
+                        <!-- Circuit Accent Dots -->
+                        <div class="absolute -top-1 -left-1 w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div class="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div class="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div class="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-400 rounded-full"></div>
+                    </div>
+
+                    <!-- Animated Data Stream Effect -->
+                    <div class="flex items-center justify-between w-full mt-4 text-[11px] font-mono text-slate-300">
+                        <span class="text-emerald-400">Data In [5+3]</span>
+                        <span class="text-amber-400 animate-pulse">&rarr; CPU Processing &rarr;</span>
+                        <span class="text-cyan-400">Result [8]</span>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button onclick="startLearning()" class="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-blue-600/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 transition-all duration-200">
+                    <span>MULAI PEMBELAJARAN</span>
+                    <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 2: MATERI SLIDES CONTAINER -->
+        <section id="sec-materi" class="hidden flex-1 flex flex-col justify-between max-w-5xl w-full mx-auto px-4 py-6">
+            
+            <!-- Dynamic Slide Content Rendered Here -->
+            <div id="slide-content-viewport" class="flex-1 flex flex-col justify-center my-auto min-h-[460px]">
+                <!-- Slide inner card loaded via JavaScript -->
+            </div>
+
+            <!-- SLIDE NAVIGATION FOOTER -->
+            <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-4">
+                <button id="btn-prev-slide" onclick="prevSlide()" class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 font-semibold rounded-xl transition border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    <span>Sebelumnya</span>
+                </button>
+
+                <!-- Center Slide Counter Badge -->
+                <div class="text-center">
+                    <span id="slide-counter-bottom" class="text-xs sm:text-sm font-semibold text-slate-400 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
+                        Slide 1 dari 10
+                    </span>
+                </div>
+
+                <button id="btn-next-slide" onclick="nextSlide()" class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/20">
+                    <span id="btn-next-label">Berikutnya</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 3: KUIS -->
+        <section id="sec-kuis" class="hidden flex-1 flex flex-col justify-between max-w-4xl w-full mx-auto px-4 py-6">
+            
+            <!-- Quiz Progress & Question Box -->
+            <div id="quiz-viewport" class="flex-1 flex flex-col justify-center">
+                <!-- Quiz content rendered via JavaScript -->
+            </div>
+
+            <!-- Quiz Navigation / Feedback Control Footer -->
+            <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                <span id="quiz-question-counter" class="text-xs sm:text-sm text-slate-400 font-semibold">
+                    Soal 1 dari 10
+                </span>
+
+                <button id="btn-next-quiz" onclick="nextQuestion()" disabled class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow-lg">
+                    <span id="btn-next-quiz-text">Lanjut ke Soal Berikutnya</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 4: HASIL / NILAI -->
+        <section id="sec-hasil" class="hidden flex-1 flex flex-col justify-center items-center px-4 py-8 text-center max-w-3xl mx-auto w-full">
+            <div class="w-full bg-slate-800/90 rounded-3xl border border-slate-700/80 p-6 sm:p-10 shadow-2xl backdrop-blur-md flex flex-col items-center">
+                
+                <div class="w-20 h-20 rounded-full bg-blue-500/20 border-2 border-blue-400 flex items-center justify-center mb-4 text-3xl">
+                    🏆
+                </div>
+
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-1">HASIL PENILAIAN KUIS</h2>
+                <p class="text-sm text-slate-400 mb-6">Sistem Komputer Alur Proses – Informatika SMP Fase D</p>
+
+                <!-- Big Score Circle / Card -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 mb-6 w-full max-w-sm flex flex-col items-center shadow-inner">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">NILAI AKHIR</span>
+                    <div id="final-score-display" class="text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 mb-2">
+                        100
+                    </div>
+                    <div id="score-percentage-text" class="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-full">
+                        100% Sempurna
+                    </div>
+                </div>
+
+                <!-- Score Breakdown Cards -->
+                <div class="grid grid-cols-2 gap-4 w-full max-w-md mb-6">
+                    <div class="bg-emerald-950/40 border border-emerald-800/60 rounded-xl p-3 flex flex-col items-center">
+                        <span class="text-xs text-emerald-300 font-semibold mb-1">Jawaban Benar</span>
+                        <span id="count-correct" class="text-2xl font-black text-emerald-400">10</span>
+                    </div>
+                    <div class="bg-rose-950/40 border border-rose-800/60 rounded-xl p-3 flex flex-col items-center">
+                        <span class="text-xs text-rose-300 font-semibold mb-1">Jawaban Salah</span>
+                        <span id="count-incorrect" class="text-2xl font-black text-rose-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Motivational Feedback Text -->
+                <div class="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-5 mb-8 w-full text-left">
+                    <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Ulasan Pembelajaran
+                    </h3>
+                    <p id="motivational-message" class="text-sm sm:text-base text-slate-200 leading-relaxed">
+                        Luar biasa! Pemahaman kamu terhadap materi Sistem Komputer sangat baik.
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 w-full justify-center">
+                    <button onclick="restartQuiz()" class="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-blue-600/30 active:scale-95">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>ULANGI KUIS</span>
+                    </button>
+                    
+                    <button onclick="goToSection('opening')" class="flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition border border-slate-700 active:scale-95">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        <span>KEMBALI KE AWAL</span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- GLOBAL FOOTER -->
+        <footer class="py-3 px-4 text-center text-xs text-slate-500 border-t border-slate-900/60 bg-slate-950/40">
+            Media Pembelajaran Interaktif Informatika SMP Fase D &bull; Sistem Komputer Alur Proses CPU
+        </footer>
+
+    </div>
+
+    <script>
+        // APP STATE
+        let currentSection = 'opening'; // 'opening', 'materi', 'kuis', 'hasil'
+        let currentSlide = 0;
+        let currentQuizIndex = 0;
+        let score = 0;
+        let selectedAnswers = []; // Store chosen options
+        let isAudioMuted = false;
+        let shuffledQuiz = [];
+
+        // WEB AUDIO API SOUND GENERATOR (No external files needed)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(type) {
+            if (isAudioMuted) return;
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(180, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'fanfare') {
+                    const freqs = [523.25, 659.25, 783.99, 1046.50];
+                    freqs.forEach((f, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'triangle';
+                        o.frequency.setValueAtTime(f, now + idx * 0.1);
+                        g.gain.setValueAtTime(0.15, now + idx * 0.1);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.25);
+                        o.start(now + idx * 0.1);
+                        o.stop(now + idx * 0.1 + 0.25);
+                    });
+                }
+            } catch(e) {
+                console.log("Audio play error:", e);
+            }
+        }
+
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            document.getElementById('audio-icon-on').classList.toggle('hidden', isAudioMuted);
+            document.getElementById('audio-icon-off').classList.toggle('hidden', !isAudioMuted);
+        }
+
+        function toggleFullscreen() {
+            playSound('click');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("Error attempting fullscreen:", err.message);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        const quizDataOriginal = [
+            {
+                id: 1,
+                question: "CPU sering dijuluki dengan istilah lain dalam sistem komputer, yaitu...",
+                options: [
+                    "A. Otak komputer",
+                    "B. Jantung komputer",
+                    "C. Mata komputer",
+                    "D. Tangan komputer"
+                ],
+                key: 0, // A
+                explanation: "CPU dijuluki 'otak' komputer karena bertugas mengolah hampir seluruh data dan mengendalikan jalannya operasi sistem komputer."
+            },
+            {
+                id: 2,
+                question: "Antara software dan hardware pada proses komputer, pernyataan paling tepat adalah...",
+                options: [
+                    "A. Software lebih penting, karena bisa bekerja tanpa hardware",
+                    "B. Hardware lebih penting, karena bisa bekerja tanpa software",
+                    "C. Keduanya sama penting, karena proses membutuhkan kerja sama keduanya",
+                    "D. Keduanya tidak penting, karena proses hanya membutuhkan RAM"
+                ],
+                key: 2, // C
+                explanation: "Proses selalu melibatkan kerja sama hardware dan software: software memberikan instruksi/perintah, sedangkan hardware yang menjalankannya."
+            },
+            {
+                id: 3,
+                question: "Fungsi utama RAM dalam proses pada sistem komputer adalah...",
+                options: [
+                    "A. Menyimpan data secara permanen walau komputer dimatikan",
+                    "B. Menampilkan hasil akhir langsung ke layar",
+                    "C. Menyimpan sementara data/instruksi yang sedang diproses CPU",
+                    "D. Menghubungkan komputer ke jaringan internet"
+                ],
+                key: 2, // C
+                explanation: "RAM adalah memori kerja sementara yang menyimpan data dan instruksi yang sedang dipakai oleh CPU ibarat 'meja kerja'."
+            },
+            {
+                id: 4,
+                question: "Laptop terasa lambat saat membuka banyak aplikasi meski CPU-nya tergolong cepat. Penyebab paling mungkin adalah...",
+                options: [
+                    "A. Kapasitas RAM kecil sehingga cepat penuh saat menampung banyak proses",
+                    "B. Kabel daya laptop sudah usang",
+                    "C. Warna casing laptop kurang menarik",
+                    "D. Sistem operasi yang digunakan terlalu baru"
+                ],
+                key: 0, // A
+                explanation: "Jika RAM berkapasitas kecil, 'meja kerja' komputer cepat penuh saat menjalankan banyak aplikasi sekaligus, memicu kelambatan."
+            },
+            {
+                id: 5,
+                question: "Bagian CPU yang bertugas melakukan operasi hitung dan logika disebut...",
+                options: [
+                    "A. Register",
+                    "B. Arithmetic Logic Unit (ALU)",
+                    "C. Control Unit (CU)",
+                    "D. RAM"
+                ],
+                key: 1, // B
+                explanation: "ALU (Arithmetic Logic Unit) bertugas melakukan operasi perhitungan matematika (penjumlahan, dsb) dan logika membandingkan nilai."
+            },
+            {
+                id: 6,
+                question: "Saat kamu mengetik 7 + 2 lalu menekan '=' pada kalkulator, bagian CPU yang paling berperan adalah...",
+                options: [
+                    "A. Control Unit",
+                    "B. Register",
+                    "C. Arithmetic Logic Unit",
+                    "D. RAM"
+                ],
+                key: 2, // C
+                explanation: "Operasi penjumlahan (7 + 2) merupakan perhitungan aritmatika yang diproses secara langsung oleh ALU (Arithmetic Logic Unit)."
+            },
+            {
+                id: 7,
+                question: "Menekan tombol 'masak' pada rice cooker dan mengirim pesan di HP memiliki persamaan proses, yaitu...",
+                options: [
+                    "A. Keduanya menggunakan CPU dengan ALU dan CU yang identik",
+                    "B. Keduanya mengikuti alur input-proses-output, meski tingkat kerumitannya berbeda",
+                    "C. Keduanya tidak memerlukan software sama sekali",
+                    "D. Keduanya pasti menghasilkan output berupa suara"
+                ],
+                key: 1, // B
+                explanation: "Konsep Input - Proses - Output berlaku universal pada berbagai perangkat elektronik, walaupun kerumitan pemrosesnya berbeda."
+            },
+            {
+                id: 8,
+                question: "Urutan siklus kerja CPU yang tepat adalah...",
+                options: [
+                    "A. Execute - Fetch - Decode",
+                    "B. Decode - Execute - Fetch",
+                    "C. Fetch - Decode - Execute",
+                    "D. Fetch - Execute - Decode"
+                ],
+                key: 2, // C
+                explanation: "Siklus kerja CPU (machine cycle) adalah Fetch (mengambil instruksi) → Decode (menerjemahkan) → Execute (menjalankan)."
+            },
+            {
+                id: 9,
+                question: "Jika bagian Control Unit pada CPU mengalami kerusakan, dampak yang paling mungkin terjadi adalah...",
+                options: [
+                    "A. Data di RAM otomatis tersimpan permanen",
+                    "B. Aliran instruksi antar komponen menjadi kacau atau tidak terkendali",
+                    "C. Kapasitas penyimpanan komputer bertambah besar",
+                    "D. Layar monitor otomatis berubah warna"
+                ],
+                key: 1, // B
+                explanation: "CU (Control Unit) bertugas seperti 'sutradara' yang mengatur aliran data & instruksi. Jika CU rusak, pengaliran instruksi menjadi tidak terkendali."
+            },
+            {
+                id: 10,
+                question: "Karakter gim baru bergerak beberapa detik setelah tombol lompat ditekan. Penyebabnya kemungkinan besar terkait tahap...",
+                options: [
+                    "A. Input, karena tombol dianggap tidak berfungsi",
+                    "B. Proses, karena CPU/RAM kewalahan mengolah instruksi",
+                    "C. Output, karena layar dianggap rusak",
+                    "D. Penyimpanan, karena hard disk dianggap penuh"
+                ],
+                key: 1, // B
+                explanation: "Keterlambatan respon (lag) setelah input diberikan merupakan masalah di tahap Proses akibat CPU/RAM yang terhambat mengolah instruksi."
+            }
+        ];
+
+        const slideMaterials = [
+            // Slide 1: Pendahuluan & Alur Input-Proses-Output
+            {
+                title: "1. Mengingat Kembali: Alur Kerja Sistem Komputer",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-base sm:text-lg text-slate-200">
+                            Secara umum, sistem komputer bekerja melalui tiga tahap utama yang saling berhubungan secara berurutan:
+                        </p>
+
+                        <!-- Diagram Interaktif Input-Proses-Output -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 sm:p-6 shadow-xl my-4">
+                            <div class="text-center mb-3">
+                                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">DIAGRAM ALUR SISTEM KOMPUTER</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 relative">
+                                <!-- Step 1: Input -->
+                                <div class="bg-emerald-950/40 border-2 border-emerald-500/50 rounded-xl p-4 flex flex-col items-center text-center relative group hover:border-emerald-400 transition">
+                                    <span class="text-xs font-bold text-emerald-400 mb-1">TAHAP 1</span>
+                                    <h4 class="text-lg font-extrabold text-white">INPUT</h4>
+                                    <p class="text-xs text-slate-300 mt-1">Data / perintah dimasukkan ke komputer</p>
+                                    <span class="mt-2 text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded font-mono">Misal: Ketikan 5 + 3</span>
+                                </div>
+
+                                <!-- Step 2: Proses -->
+                                <div class="bg-blue-950/60 border-2 border-blue-500/80 rounded-xl p-4 flex flex-col items-center text-center relative group hover:border-blue-400 transition shadow-lg shadow-blue-500/20">
+                                    <span class="text-xs font-bold text-blue-400 mb-1">TAHAP 2 (FOKUS UTAMA)</span>
+                                    <h4 class="text-lg font-extrabold text-white">PROSES</h4>
+                                    <p class="text-xs text-slate-300 mt-1">Data diolah oleh CPU sesuai instruksi program</p>
+                                    <span class="mt-2 text-[10px] bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded font-mono">Diolah oleh CPU & RAM</span>
+                                </div>
+
+                                <!-- Step 3: Output -->
+                                <div class="bg-indigo-950/40 border-2 border-indigo-500/50 rounded-xl p-4 flex flex-col items-center text-center relative group hover:border-indigo-400 transition">
+                                    <span class="text-xs font-bold text-indigo-400 mb-1">TAHAP 3</span>
+                                    <h4 class="text-lg font-extrabold text-white">OUTPUT</h4>
+                                    <p class="text-xs text-slate-300 mt-1">Hasil pengolahan ditampilkan / disimpan</p>
+                                    <span class="mt-2 text-[10px] bg-indigo-900/60 text-indigo-300 px-2 py-0.5 rounded font-mono">Hasil: Angka 8 di layar</span>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Flow Test Button -->
+                            <div class="mt-4 pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <span class="text-xs text-slate-400">Tekan tombol untuk mensimulasikan aliran data:</span>
+                                <button onclick="runInputProsesOutputDemo()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition shadow flex items-center gap-2">
+                                    <span>Simulasikan Aliran Data</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                </button>
+                            </div>
+                            <div id="demo-flow-status" class="hidden mt-2 p-2 bg-slate-950 text-center text-xs font-mono text-cyan-300 rounded border border-cyan-800">
+                                Simulasi data berjalan...
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-4 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                                Fokus pembelajaran kita adalah pada tahap <strong class="text-amber-300">Proses</strong>. Tahap ini paling sibuk dan menentukan karena di sinilah data "mentah" diubah menjadi informasi yang bermanfaat.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 2: Apa Itu "Proses"?
+            {
+                title: "2. Apa Itu \"Proses\" dalam Sistem Komputer?",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-base sm:text-lg text-slate-200">
+                            <strong>Proses</strong> adalah tahap ketika data yang sudah dimasukkan (input) diolah oleh komputer berdasarkan instruksi dari sebuah program, sehingga menghasilkan output yang bermakna.
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 hover:border-blue-500/50 transition">
+                                <div class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400 flex items-center justify-center text-xl mb-3">
+                                    ⚙️
+                                </div>
+                                <h4 class="font-bold text-white text-base mb-1">Kerja Sama Hardware & Software</h4>
+                                <p class="text-xs text-slate-300 leading-relaxed">
+                                    Instruksi berasal dari <strong>software (perangkat lunak)</strong>, sedangkan yang menjalankan instruksi tersebut adalah <strong>hardware (perangkat keras)</strong> tertentu di dalam komputer.
+                                </p>
+                            </div>
+
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 hover:border-indigo-500/50 transition">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400 flex items-center justify-center text-xl mb-3">
+                                    🤝
+                                </div>
+                                <h4 class="font-bold text-white text-base mb-1">Saling Membutuhkan</h4>
+                                <p class="text-xs text-slate-300 leading-relaxed">
+                                    Keduanya saling membutuhkan: software memberikan <em>"perintah"</em>, sedangkan hardware yang <em>"mengerjakan"</em>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-red-950/50 border-l-4 border-red-500 p-4 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-red-400 uppercase tracking-wider block mb-1">🚨 WAJIB DIINGAT:</span>
+                            <p class="text-xs sm:text-sm text-slate-200">
+                                Proses tidak dapat berlangsung jika hanya ada hardware tanpa software, atau sebaliknya. Proses membutuhkan kerja sama penuh antar keduanya!
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 3: Perangkat Keras - CPU
+            {
+                title: "3. Perangkat Keras: CPU (Central Processing Unit) — Sang \"Otak\"",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-sm sm:text-base text-slate-200">
+                            <strong>CPU</strong> adalah komponen utama yang bertugas mengolah hampir seluruh data dalam komputer. Karena perannya yang sangat penting, CPU dijuluki <strong>"otak" komputer</strong>.
+                        </p>
+
+                        <!-- Interactive Clickable CPU Explorer -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 sm:p-5">
+                            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-2 text-center">
+                                👆 KLIK KOMPONEN DI DALAM CPU UNTUK MEMBACA FUNGSINYA:
+                            </span>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 my-3">
+                                <button onclick="inspectCpuPart('alu')" id="btn-cpu-alu" class="cpu-part-btn bg-slate-800 hover:bg-blue-900/50 border-2 border-blue-500/40 focus:border-blue-400 rounded-xl p-3 text-left transition">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-extrabold text-blue-300 text-sm">ALU</span>
+                                        <span class="text-[10px] bg-blue-950 text-blue-300 px-1.5 py-0.5 rounded">Operasi Hitung</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-300">Arithmetic Logic Unit</div>
+                                </button>
+
+                                <button onclick="inspectCpuPart('cu')" id="btn-cpu-cu" class="cpu-part-btn bg-slate-800 hover:bg-indigo-900/50 border-2 border-indigo-500/40 focus:border-indigo-400 rounded-xl p-3 text-left transition">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-extrabold text-indigo-300 text-sm">CU</span>
+                                        <span class="text-[10px] bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded">Pengendali</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-300">Control Unit</div>
+                                </button>
+
+                                <button onclick="inspectCpuPart('register')" id="btn-cpu-register" class="cpu-part-btn bg-slate-800 hover:bg-cyan-900/50 border-2 border-cyan-500/40 focus:border-cyan-400 rounded-xl p-3 text-left transition">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-extrabold text-cyan-300 text-sm">Register</span>
+                                        <span class="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded">Memori Super Cepat</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-300">Penyimpanan Sementara</div>
+                                </button>
+                            </div>
+
+                            <!-- Detail Display Area -->
+                            <div id="cpu-detail-box" class="bg-slate-950 p-4 rounded-xl border border-slate-800 min-h-[90px] flex items-center justify-center text-center">
+                                <p class="text-xs text-slate-400">Silakan klik salah satu komponen di atas (ALU, CU, atau Register) untuk melihat rincian penjelasannya.</p>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs text-slate-200">
+                                Tiga komponen utama dalam CPU: <strong>ALU</strong> (hitung & logika), <strong>CU</strong> (sutradara pengatur aliran data), dan <strong>Register</strong> (penyimpanan internal super cepat saat diproses).
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 4: Perangkat Keras - RAM
+            {
+                title: "4. Perangkat Keras: RAM — \"Meja Kerja\" Sementara",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-sm sm:text-base text-slate-200">
+                            <strong>RAM (Random Access Memory)</strong> adalah memori kerja sementara yang menyimpan data dan instruksi yang sedang dipakai oleh CPU saat aplikasi berjalan.
+                        </p>
+
+                        <!-- RAM Workbench Interactive Visualizer -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">VISUALISASI ANALOGI RAM SEBAGAI MEJA KERJA</span>
+                                <span id="ram-status-tag" class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800">Meja Kosong</span>
+                            </div>
+
+                            <!-- Workbench Simulation Canvas/Board -->
+                            <div class="bg-slate-950 border-2 border-dashed border-slate-800 rounded-xl p-4 min-h-[140px] flex flex-col items-center justify-center relative overflow-hidden">
+                                <div id="ram-workbench-items" class="flex flex-wrap items-center justify-center gap-3 w-full">
+                                    <div class="text-slate-500 text-xs italic">Belum ada data/instruksi di meja kerja RAM...</div>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Controls for RAM -->
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+                                <button onclick="addRamItem('Kalkulator (5+3)')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs rounded-xl border border-slate-700 transition">
+                                    + Buka Aplikasi
+                                </button>
+                                <button onclick="addRamItem('Game Jumping Code')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold text-xs rounded-xl border border-slate-700 transition">
+                                    + Buka Gim
+                                </button>
+                                <button onclick="clearRam()" class="col-span-2 sm:col-span-1 px-3 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-semibold text-xs rounded-xl border border-rose-800 transition">
+                                    🧹 Matikan / Bersihkan RAM
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs text-slate-200">
+                                Ibarat meja kerja: begitu pekerjaan selesai atau komputer dimatikan, "meja" RAM ini dibersihkan kembali dan data di dalamnya akan hilang (bersifat sementara / <em>volatile</em>).
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 5: Perangkat Lunak
+            {
+                title: "5. Perangkat Lunak (Software) yang Berperan dalam Proses",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-sm sm:text-base text-slate-200">
+                            Tanpa software, hardware CPU tidak akan tahu apa yang harus dikerjakan. Ada dua jenis software utama:
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-3">
+                            <!-- Operating System Card -->
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 hover:border-blue-500/50 transition">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400 flex items-center justify-center text-xl">
+                                        🖥️
+                                    </div>
+                                    <div>
+                                        <h4 class="font-extrabold text-white text-base">Sistem Operasi (OS)</h4>
+                                        <span class="text-[10px] text-blue-400 font-mono">Windows, macOS, Android</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-300 leading-relaxed">
+                                    Bertugas <strong>mengatur dan menjadwalkan</strong> berbagai proses yang berjalan di komputer, agar semuanya dapat berjalan teratur meskipun tampak berjalan bersamaan.
+                                </p>
+                            </div>
+
+                            <!-- Application Software Card -->
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 hover:border-indigo-500/50 transition">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400 flex items-center justify-center text-xl">
+                                        📱
+                                    </div>
+                                    <div>
+                                        <h4 class="font-extrabold text-white text-base">Software Aplikasi</h4>
+                                        <span class="text-[10px] text-indigo-400 font-mono">Kalkulator, Chat, Gim</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-300 leading-relaxed">
+                                    Memberikan <strong>instruksi spesifik</strong> tentang apa yang harus diproses oleh CPU. Misalnya menghitung angka atau menggerakkan karakter gim.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-blue-950/50 border-l-4 border-blue-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-blue-400 uppercase tracking-wider block mb-1">💡 RINGKASAN PERAN SOFTWARE:</span>
+                            <p class="text-xs text-slate-200">
+                                Sistem Operasi mengatur lalu lintas jalannya proses, sedangkan Software Aplikasi memberikan perintah spesifik apa yang harus dikerjakan CPU.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 6: Siklus CPU - Fetch Decode Execute
+            {
+                title: "6. Bagaimana CPU Bekerja? Siklus Fetch — Decode — Execute",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-xs sm:text-sm text-slate-200">
+                            Setiap kali CPU memproses sebuah instruksi, ia melalui tiga langkah yang berulang terus menerus (disebut <em>machine cycle</em>):
+                        </p>
+
+                        <!-- Animated Interactive Machine Cycle Simulation -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 sm:p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">SIKLUS MESIN CPU (MILIARAN KALI / DETIK)</span>
+                                <button onclick="stepMachineCycle()" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition shadow">
+                                    ▶ Jalankan Langkah Siklus
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 my-3">
+                                <!-- Step 1: Fetch -->
+                                <div id="cycle-step-1" class="cycle-card bg-slate-800 border-2 border-slate-700 rounded-xl p-3 transition-all duration-300">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-black text-blue-400">1. FETCH (Ambil)</span>
+                                        <span class="text-[9px] bg-blue-950 text-blue-300 px-1.5 py-0.5 rounded">CU &rarr; RAM</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                                        Control Unit mengambil instruksi berikutnya dari memori RAM.
+                                    </p>
+                                </div>
+
+                                <!-- Step 2: Decode -->
+                                <div id="cycle-step-2" class="cycle-card bg-slate-800 border-2 border-slate-700 rounded-xl p-3 transition-all duration-300">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-black text-indigo-400">2. DECODE (Terjemah)</span>
+                                        <span class="text-[9px] bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded">CU &rarr; ALU</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                                        Control Unit menerjemahkan instruksi ke bentuk yang dipahami ALU.
+                                    </p>
+                                </div>
+
+                                <!-- Step 3: Execute -->
+                                <div id="cycle-step-3" class="cycle-card bg-slate-800 border-2 border-slate-700 rounded-xl p-3 transition-all duration-300">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-black text-emerald-400">3. EXECUTE (Jalan)</span>
+                                        <span class="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded">ALU / Hardware</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                                        ALU menjalankan instruksi; hasil disimpan di register atau dikirim ke output.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div id="cycle-status-text" class="text-center text-xs text-cyan-300 font-mono bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                Status: Klik tombol di atas untuk melihat proses siklus.
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs text-slate-200">
+                                Siklus <strong>Fetch &rarr; Decode &rarr; Execute</strong> ini berlangsung berulang-ulang hingga miliaran kali dalam satu detik, sehingga komputer terasa merespons dengan sangat instan!
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 7: Analogi Dapur Restoran
+            {
+                title: "7. Analogi Dapur Restoran: Memahami Proses dengan Cara Sederhana",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-xs sm:text-sm text-slate-200">
+                            Mari kita bandingkan suasana dapur restoran yang sibuk dengan komponen sistem komputer:
+                        </p>
+
+                        <!-- Kitchen vs Computer Comparison Table / Cards -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+                            <div class="grid grid-cols-2 bg-slate-800 p-3 text-xs font-extrabold tracking-wider border-b border-slate-700">
+                                <span class="text-amber-400 flex items-center gap-1">🍳 DAPUR RESTORAN</span>
+                                <span class="text-blue-400 flex items-center gap-1">💻 SISTEM KOMPUTER</span>
+                            </div>
+
+                            <div class="divide-y divide-slate-800 text-xs text-slate-300">
+                                <div class="grid grid-cols-2 p-2.5 hover:bg-slate-800/50 transition">
+                                    <span>Pesanan dari pelanggan (bahan mentah)</span>
+                                    <span class="font-semibold text-emerald-400">Data / Input</span>
+                                </div>
+                                <div class="grid grid-cols-2 p-2.5 hover:bg-slate-800/50 transition">
+                                    <span>Resep masakan</span>
+                                    <span class="font-semibold text-indigo-400">Program / Software</span>
+                                </div>
+                                <div class="grid grid-cols-2 p-2.5 hover:bg-slate-800/50 transition">
+                                    <span>Koki yang memasak</span>
+                                    <span class="font-semibold text-blue-400">CPU (Processor)</span>
+                                </div>
+                                <div class="grid grid-cols-2 p-2.5 hover:bg-slate-800/50 transition">
+                                    <span>Pisau, kompor, wajan alat koki</span>
+                                    <span class="font-semibold text-cyan-400">ALU & CU yang memproses</span>
+                                </div>
+                                <div class="grid grid-cols-2 p-2.5 hover:bg-slate-800/50 transition">
+                                    <span>Meja counter tempat bahan sementara</span>
+                                    <span class="font-semibold text-emerald-400">RAM (memori kerja sementara)</span>
+                                </div>
+                                <div class="grid grid-cols-2 p-2.5 hover:bg-slate-800/50 transition">
+                                    <span>Makanan siap saji ke pelanggan</span>
+                                    <span class="font-semibold text-amber-400">Output / hasil layar</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs text-slate-200">
+                                Seperti koki yang butuh resep dan meja counter, CPU butuh instruksi software dan meja sementara RAM untuk menyelesaikan pengolahan data.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 8: Contoh Kehidupan Sehari-hari (Simulasi Kalkulator & Gim)
+            {
+                title: "8. Contoh Konkret dalam Kehidupan Sehari-hari",
+                content: `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <!-- Calculator Interactive Simulator -->
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between">
+                                <div>
+                                    <h4 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                                        <span class="p-1 bg-blue-500/20 text-blue-400 rounded">🧮</span>
+                                        Contoh 1: Kalkulator (5 + 3)
+                                    </h4>
+                                    <!-- Mini Calculator Screen -->
+                                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-right mb-3">
+                                        <div id="calc-display" class="text-2xl font-mono font-bold text-emerald-400">5 + 3 = 8</div>
+                                        <div id="calc-step-info" class="text-[10px] text-slate-400 mt-1">Output: Angka 8 ditampilkan pada layar</div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <button onclick="runCalcDemo()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition shadow">
+                                        Ulangi Simulasi (5 + 3)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Game Jump Button Interactive Simulator -->
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between">
+                                <div>
+                                    <h4 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                                        <span class="p-1 bg-indigo-500/20 text-indigo-400 rounded">🎮</span>
+                                        Contoh 2: Tombol Lompat pada Gim
+                                    </h4>
+
+                                    <!-- Game Screen Graphic -->
+                                    <div class="bg-slate-950 h-28 rounded-xl border border-slate-800 relative overflow-hidden flex items-end justify-center pb-2">
+                                        <!-- Floor line -->
+                                        <div class="absolute bottom-0 w-full h-2 bg-emerald-800"></div>
+                                        <!-- Character Avatar -->
+                                        <div id="game-avatar" class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-xs shadow transition-transform duration-300">
+                                            🤖
+                                        </div>
+                                    </div>
+                                    <div id="game-step-info" class="text-[10px] text-center text-slate-400 mt-2">
+                                        Klik tombol "LOMPAT" untuk melihat alur proses gim
+                                    </div>
+                                </div>
+
+                                <button onclick="triggerJumpDemo()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition shadow mt-3">
+                                    🦘 Tekan Tombol LOMPAT
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs text-slate-200">
+                                Kedua contoh ini mengikuti pola yang sama persis: <strong>Input &rarr; CPU (ALU/Instruksi) &rarr; Hasil Output</strong>.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 9: Perangkat Elektronik Lainnya
+            {
+                title: "9. Proses Tidak Hanya Ada pada Komputer atau Laptop",
+                content: `
+                    <div class="space-y-4">
+                        <p class="text-xs sm:text-sm text-slate-200">
+                            Konsep <strong>Input &rarr; Proses &rarr; Output</strong> juga berlaku pada berbagai perangkat elektronik lain di sekitar kita:
+                        </p>
+
+                        <!-- Electronic Devices Table -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl overflow-hidden shadow-xl">
+                            <div class="grid grid-cols-4 bg-slate-800 p-2.5 text-[11px] font-extrabold text-blue-300 border-b border-slate-700">
+                                <span>Perangkat</span>
+                                <span>Input</span>
+                                <span>Proses</span>
+                                <span>Output</span>
+                            </div>
+
+                            <div class="divide-y divide-slate-800 text-[11px] text-slate-300">
+                                <!-- Rice Cooker -->
+                                <div class="grid grid-cols-4 p-2.5 hover:bg-slate-800/50 transition items-center">
+                                    <span class="font-bold text-amber-300">Rice Cooker</span>
+                                    <span>Tombol "Masak" ditekan</span>
+                                    <span>Elemen pemanas bekerja sesuai program</span>
+                                    <span class="text-emerald-400">Nasi matang, lampu "Warm"</span>
+                                </div>
+                                <!-- Smartphone -->
+                                <div class="grid grid-cols-4 p-2.5 hover:bg-slate-800/50 transition items-center">
+                                    <span class="font-bold text-cyan-300">Smartphone</span>
+                                    <span>Ketikan pesan keyboard</span>
+                                    <span>Processor HP mengolah teks & data</span>
+                                    <span class="text-emerald-400">Pesan terkirim</span>
+                                </div>
+                                <!-- Komputer / Laptop -->
+                                <div class="grid grid-cols-4 p-2.5 hover:bg-slate-800/50 transition items-center">
+                                    <span class="font-bold text-indigo-300">Komputer / Laptop</span>
+                                    <span>Angka 5 + 3 kalkulator</span>
+                                    <span>CPU (ALU) menjumlahkan</span>
+                                    <span class="text-emerald-400">Angka 8 tampil di layar</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Important Note Badge -->
+                        <div class="bg-amber-950/50 border-l-4 border-amber-500 p-3 rounded-r-xl">
+                            <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider block mb-1">📌 CATATAN PENTING:</span>
+                            <p class="text-xs text-slate-200">
+                                Meskipun "otak" pemroses pada penanak nasi lebih sederhana daripada CPU laptop, prinsip alurnya tetaplah sama yaitu Input &rarr; Proses &rarr; Output.
+                            </p>
+                        </div>
+                    </div>
+                `
+            },
+
+            // Slide 10: Rangkuman & Glosarium
+            {
+                title: "10. Rangkuman & Glosarium (Istilah Penting)",
+                content: `
+                    <div class="space-y-4">
+                        <!-- Summary Card -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4">
+                            <h4 class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <span>📝</span> RANGKUMAN MATERI
+                            </h4>
+                            <ul class="text-xs text-slate-200 space-y-1.5 list-disc list-inside">
+                                <li>Sistem komputer bekerja melalui alur <strong>Input &rarr; Proses &rarr; Output</strong>.</li>
+                                <li><strong>Proses</strong> adalah tahap pengolahan data berdasarkan instruksi software, dijalankan oleh hardware.</li>
+                                <li><strong>CPU</strong> adalah "otak" komputer, terdiri atas <strong>ALU</strong>, <strong>CU</strong>, dan <strong>Register</strong>.</li>
+                                <li><strong>RAM</strong> berperan sebagai "meja kerja" sementara yang menyimpan data selama proses berlangsung.</li>
+                                <li>CPU bekerja melalui siklus <strong>Fetch &ndash; Decode &ndash; Execute</strong> yang berulang sangat cepat.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Glossary Card -->
+                        <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4">
+                            <h4 class="text-xs font-extrabold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <span>📖</span> GLOSARIUM (ISTILAH PENTING)
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                                    <strong class="text-blue-300">CPU:</strong> Komponen utama pemproses; "otak" komputer.
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                                    <strong class="text-blue-300">ALU:</strong> Melakukan operasi hitung dan logika.
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                                    <strong class="text-indigo-300">CU:</strong> Mengatur & mengendalikan aliran instruksi.
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                                    <strong class="text-indigo-300">Register:</strong> Memori internal CPU super cepat.
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                                    <strong class="text-emerald-300">RAM:</strong> Memori kerja sementara untuk data/instruksi.
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                                    <strong class="text-cyan-300">Machine Cycle:</strong> Siklus Fetch - Decode - Execute.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Button to Start Quiz -->
+                        <div class="pt-2 flex justify-center">
+                            <button onclick="goToSection('kuis')" class="px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-105 transition-all">
+                                🚀 SELESAI MATERI &amp; MULAI KUIS INTERAKTIF
+                            </button>
+                        </div>
+                    </div>
+                `
+            }
+        ];
+
+        function goToSection(sectionName) {
+            playSound('click');
+            currentSection = sectionName;
+
+            // Hide all sections
+            document.getElementById('sec-opening').classList.add('hidden');
+            document.getElementById('sec-materi').classList.add('hidden');
+            document.getElementById('sec-kuis').classList.add('hidden');
+            document.getElementById('sec-hasil').classList.add('hidden');
+
+            const header = document.getElementById('main-header');
+            const progressContainer = document.getElementById('slide-progress-container');
+
+            if (sectionName === 'opening') {
+                header.classList.add('hidden');
+                document.getElementById('sec-opening').classList.remove('hidden');
+            } else if (sectionName === 'materi') {
+                header.classList.remove('hidden');
+                progressContainer.classList.remove('hidden');
+                document.getElementById('sec-materi').classList.remove('hidden');
+                renderSlide(currentSlide);
+            } else if (sectionName === 'kuis') {
+                header.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
+                document.getElementById('sec-kuis').classList.remove('hidden');
+                startQuiz();
+            } else if (sectionName === 'hasil') {
+                header.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
+                document.getElementById('sec-hasil').classList.remove('hidden');
+                renderResults();
+            }
+        }
+
+        function startLearning() {
+            currentSlide = 0;
+            goToSection('materi');
+        }
+
+        function renderSlide(index) {
+            const viewport = document.getElementById('slide-content-viewport');
+            const slide = slideMaterials[index];
+
+            viewport.innerHTML = `
+                <div class="bg-slate-800/90 rounded-3xl border border-slate-700/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md transition-all duration-300">
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-3 mb-4">
+                        <h3 class="text-lg sm:text-2xl font-extrabold text-white tracking-tight">${slide.title}</h3>
+                        <span class="text-xs font-bold text-blue-400 bg-blue-950/80 px-3 py-1 rounded-full border border-blue-800">
+                            Slide ${index + 1} / ${slideMaterials.length}
+                        </span>
+                    </div>
+                    <div>${slide.content}</div>
+                </div>
+            `;
+
+            // Update Progress Bar & Counter
+            const progressPct = ((index + 1) / slideMaterials.length) * 100;
+            document.getElementById('slide-progress-bar').style.width = `${progressPct}%`;
+            document.getElementById('slide-indicator').innerText = `Slide ${index + 1} dari ${slideMaterials.length}`;
+            document.getElementById('slide-counter-bottom').innerText = `Slide ${index + 1} dari ${slideMaterials.length}`;
+
+            // Button States
+            document.getElementById('btn-prev-slide').disabled = (index === 0);
+            const nextBtnLabel = document.getElementById('btn-next-label');
+            if (index === slideMaterials.length - 1) {
+                nextBtnLabel.innerText = "Mulai Kuis";
+            } else {
+                nextBtnLabel.innerText = "Berikutnya";
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                playSound('click');
+                currentSlide--;
+                renderSlide(currentSlide);
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < slideMaterials.length - 1) {
+                playSound('click');
+                currentSlide++;
+                renderSlide(currentSlide);
+            } else {
+                goToSection('kuis');
+            }
+        }
+
+        function runInputProsesOutputDemo() {
+            playSound('click');
+            const status = document.getElementById('demo-flow-status');
+            status.classList.remove('hidden');
+            status.innerHTML = `<span class="animate-pulse">🟢 1. Input: Menerima data [5 + 3] dari keyboard...</span>`;
+            
+            setTimeout(() => {
+                status.innerHTML = `<span class="animate-pulse text-blue-400">⚡ 2. Proses: CPU (ALU) sedang menjumlahkan 5 + 3...</span>`;
+            }, 1000);
+
+            setTimeout(() => {
+                status.innerHTML = `<span class="text-emerald-400 font-bold">✨ 3. Output: Selesai! Hasil = 8 dikirim ke layar.</span>`;
+                playSound('correct');
+            }, 2000);
+        }
+
+        function inspectCpuPart(part) {
+            playSound('click');
+            const detailBox = document.getElementById('cpu-detail-box');
+            if (part === 'alu') {
+                detailBox.innerHTML = `
+                    <div class="text-left">
+                        <strong class="text-blue-300 text-sm block mb-1">ALU (Arithmetic Logic Unit):</strong>
+                        <p class="text-xs text-slate-200">Bertugas melakukan <strong>operasi hitung</strong> (tambah, kurang, kali, bagi) dan <strong>operasi logika</strong> (membandingkan dua nilai, seperti <em>"apakah A > B?"</em>).</p>
+                    </div>
+                `;
+            } else if (part === 'cu') {
+                detailBox.innerHTML = `
+                    <div class="text-left">
+                        <strong class="text-indigo-300 text-sm block mb-1">CU (Control Unit):</strong>
+                        <p class="text-xs text-slate-200">Bertugas <strong>mengatur dan mengendalikan</strong> aliran data serta instruksi ke seluruh komponen komputer — mirip seperti <em>sutradara</em> pertunjukan.</p>
+                    </div>
+                `;
+            } else if (part === 'register') {
+                detailBox.innerHTML = `
+                    <div class="text-left">
+                        <strong class="text-cyan-300 text-sm block mb-1">Register:</strong>
+                        <p class="text-xs text-slate-200">Tempat penyimpanan sementara berukuran sangat kecil tetapi <strong>kecepatan aksesnya paling tinggi</strong> di antara semua jenis memori.</p>
+                    </div>
+                `;
+            }
+        }
+
+        let ramItems = [];
+        function addRamItem(itemName) {
+            playSound('click');
+            if (ramItems.length >= 3) {
+                alert("Meja RAM sudah penuh! Bersihkan RAM terlebih dahulu.");
+                return;
+            }
+            ramItems.push(itemName);
+            updateRamDisplay();
+        }
+
+        function clearRam() {
+            playSound('click');
+            ramItems = [];
+            updateRamDisplay();
+        }
+
+        function updateRamDisplay() {
+            const container = document.getElementById('ram-workbench-items');
+            const tag = document.getElementById('ram-status-tag');
+            
+            if (ramItems.length === 0) {
+                container.innerHTML = `<div class="text-slate-500 text-xs italic">Belum ada data/instruksi di meja kerja RAM...</div>`;
+                tag.innerText = "Meja Kosong";
+                tag.className = "text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800";
+            } else {
+                container.innerHTML = ramItems.map(item => `
+                    <div class="bg-emerald-900/60 text-emerald-200 border border-emerald-500/50 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 animate-bounce-soft">
+                        <span>📄</span>
+                        <span>${item}</span>
+                    </div>
+                `).join('');
+                tag.innerText = `Meja Terisi (${ramItems.length}/3)`;
+                tag.className = "text-[10px] bg-blue-950 text-blue-300 px-2 py-0.5 rounded border border-blue-800";
+            }
+        }
+
+        let cycleStep = 0;
+        function stepMachineCycle() {
+            playSound('click');
+            cycleStep = (cycleStep % 3) + 1;
+
+            document.querySelectorAll('.cycle-card').forEach(c => {
+                c.classList.remove('border-blue-400', 'border-indigo-400', 'border-emerald-400', 'bg-slate-700');
+            });
+
+            const statusText = document.getElementById('cycle-status-text');
+
+            if (cycleStep === 1) {
+                document.getElementById('cycle-step-1').classList.add('border-blue-400', 'bg-slate-700');
+                statusText.innerText = "1. FETCH: Control Unit mengambil instruksi dari memori RAM.";
+            } else if (cycleStep === 2) {
+                document.getElementById('cycle-step-2').classList.add('border-indigo-400', 'bg-slate-700');
+                statusText.innerText = "2. DECODE: Control Unit menerjemahkan instruksi untuk ALU.";
+            } else if (cycleStep === 3) {
+                document.getElementById('cycle-step-3').classList.add('border-emerald-400', 'bg-slate-700');
+                statusText.innerText = "3. EXECUTE: ALU menjalankan instruksi matematika/logika!";
+            }
+        }
+
+        function runCalcDemo() {
+            playSound('click');
+            const disp = document.getElementById('calc-display');
+            const info = document.getElementById('calc-step-info');
+
+            disp.innerText = "Input: 5 + 3";
+            info.innerText = "Tahap 1: Menerima tombol '5', '+', '3', dan '='";
+
+            setTimeout(() => {
+                disp.innerText = "Proses ALU...";
+                info.innerText = "Tahap 2: CPU (ALU) melakukan penjumlahan 5 + 3";
+            }, 1000);
+
+            setTimeout(() => {
+                disp.innerText = "5 + 3 = 8";
+                info.innerText = "Tahap 3: Output angka 8 ditampilkan di layar";
+                playSound('correct');
+            }, 2000);
+        }
+
+        function triggerJumpDemo() {
+            playSound('click');
+            const avatar = document.getElementById('game-avatar');
+            const info = document.getElementById('game-step-info');
+
+            info.innerText = "Input ditekan &rarr; CPU memproses instruksi 'karakter melompat'...";
+            avatar.style.transform = "translateY(-40px)";
+
+            setTimeout(() => {
+                avatar.style.transform = "translateY(0px)";
+                info.innerText = "Output: Karakter pada layar terlihat melompat!";
+                playSound('correct');
+            }, 400);
+        }
+
+        function startQuiz() {
+            score = 0;
+            currentQuizIndex = 0;
+            selectedAnswers = new Array(quizDataOriginal.length).fill(null);
+            
+            // Shuffle questions while preserving accurate key binding
+            shuffledQuiz = [...quizDataOriginal].sort(() => Math.random() - 0.5);
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const viewport = document.getElementById('quiz-viewport');
+            const q = shuffledQuiz[currentQuizIndex];
+            const hasAnswered = selectedAnswers[currentQuizIndex] !== null;
+
+            viewport.innerHTML = `
+                <div class="bg-slate-800/90 rounded-3xl border border-slate-700/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md">
+                    <!-- Header inside quiz -->
+                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-3 mb-4">
+                        <span class="text-xs font-bold text-blue-400 bg-blue-950 px-3 py-1 rounded-full border border-blue-800">
+                            Soal ${currentQuizIndex + 1} dari ${shuffledQuiz.length}
+                        </span>
+                        <span class="text-xs font-semibold text-slate-400">Pilihlah satu jawaban yang paling tepat</span>
+                    </div>
+
+                    <!-- Question Text -->
+                    <h3 class="text-base sm:text-xl font-bold text-white mb-6 leading-relaxed">${q.question}</h3>
+
+                    <!-- Option Cards -->
+                    <div class="grid grid-cols-1 gap-3 mb-6">
+                        ${q.options.map((opt, optIdx) => {
+                            let btnStyle = "bg-slate-900/80 hover:bg-slate-700/80 border-slate-700 text-slate-200";
+                            
+                            if (hasAnswered) {
+                                const chosen = selectedAnswers[currentQuizIndex];
+                                if (optIdx === q.key) {
+                                    btnStyle = "bg-emerald-950/90 border-emerald-500 text-emerald-200 font-bold";
+                                } else if (optIdx === chosen) {
+                                    btnStyle = "bg-rose-950/90 border-rose-500 text-rose-200";
+                                } else {
+                                    btnStyle = "bg-slate-900/40 border-slate-800 text-slate-500 opacity-50";
+                                }
+                            }
+
+                            return `
+                                <button 
+                                    onclick="selectAnswer(${optIdx})" 
+                                    ${hasAnswered ? 'disabled' : ''}
+                                    class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 text-sm sm:text-base flex items-center justify-between ${btnStyle}">
+                                    <span>${opt}</span>
+                                    ${hasAnswered && optIdx === q.key ? '<span class="text-emerald-400 font-black">✓ BENAR</span>' : ''}
+                                    ${hasAnswered && optIdx === selectedAnswers[currentQuizIndex] && optIdx !== q.key ? '<span class="text-rose-400 font-black">✕ SALAH</span>' : ''}
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <!-- Explanation Banner (Shown after answering) -->
+                    ${hasAnswered ? `
+                        <div class="p-4 rounded-xl border ${selectedAnswers[currentQuizIndex] === q.key ? 'bg-emerald-950/60 border-emerald-800 text-emerald-200' : 'bg-rose-950/60 border-rose-800 text-rose-200'}">
+                            <div class="font-extrabold text-xs uppercase tracking-wider mb-1">
+                                ${selectedAnswers[currentQuizIndex] === q.key ? '✓ JAWABAN KAMU BENAR!' : '✕ JAWABAN KURANG TEPAT'}
+                            </div>
+                            <p class="text-xs sm:text-sm leading-relaxed">${q.explanation}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Footer navigation status
+            document.getElementById('quiz-question-counter').innerText = `Soal ${currentQuizIndex + 1} dari ${shuffledQuiz.length}`;
+            const nextBtn = document.getElementById('btn-next-quiz');
+            nextBtn.disabled = !hasAnswered;
+
+            const nextText = document.getElementById('btn-next-quiz-text');
+            if (currentQuizIndex === shuffledQuiz.length - 1) {
+                nextText.innerText = "Lihat Hasil Nilai";
+            } else {
+                nextText.innerText = "Lanjut ke Soal Berikutnya";
+            }
+        }
+
+        function selectAnswer(optionIndex) {
+            if (selectedAnswers[currentQuizIndex] !== null) return;
+
+            selectedAnswers[currentQuizIndex] = optionIndex;
+            const q = shuffledQuiz[currentQuizIndex];
+
+            if (optionIndex === q.key) {
+                score++;
+                playSound('correct');
+            } else {
+                playSound('wrong');
+            }
+
+            renderQuizQuestion();
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            if (currentQuizIndex < shuffledQuiz.length - 1) {
+                currentQuizIndex++;
+                renderQuizQuestion();
+            } else {
+                goToSection('hasil');
+            }
+        }
+
+        function restartQuiz() {
+            playSound('click');
+            startQuiz();
+            goToSection('kuis');
+        }
+
+        function renderResults() {
+            playSound('fanfare');
+            const total = shuffledQuiz.length;
+            const correctCount = score;
+            const incorrectCount = total - score;
+            const finalScore = Math.round((correctCount / total) * 100);
+
+            document.getElementById('final-score-display').innerText = finalScore;
+            document.getElementById('count-correct').innerText = correctCount;
+            document.getElementById('count-incorrect').innerText = incorrectCount;
+            document.getElementById('score-percentage-text').innerText = `${finalScore}% Ketepatan`;
+
+            const msgBox = document.getElementById('motivational-message');
+
+            if (finalScore >= 90) {
+                msgBox.innerText = "Luar biasa! Pemahaman kamu terhadap materi Sistem Komputer Alur Proses sangat baik. Pertahankan prestasimu!";
+                triggerConfetti();
+            } else if (finalScore >= 75) {
+                msgBox.innerText = "Bagus! Kamu sudah memahami sebagian besar materi Sistem Komputer. Terus tingkatkan pemahamanmu!";
+                triggerConfetti();
+            } else if (finalScore >= 60) {
+                msgBox.innerText = "Cukup baik. Pelajari kembali beberapa bagian materi agar pemahamanmu mengenai alur CPU semakin kuat.";
+            } else {
+                msgBox.innerText = "Tetap semangat! Silakan pelajari kembali materi Sistem Komputer dan coba kerjakan kuis kembali.";
+            }
+        }
+
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 8 + 4,
+                    speedY: Math.random() * 3 + 2,
+                    speedX: Math.random() * 2 - 1
+                });
+            }
+
+            let animationFrame;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                });
+
+                if (particles.some(p => p.y < canvas.height)) {
+                    animationFrame = requestAnimationFrame(animate);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            animate();
+        }
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confetti-canvas');
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+</html>
