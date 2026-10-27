@@ -70,6 +70,21 @@
         .glow-effect {
             box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.4);
         }
+        /* === SPINNER WHEEL (kuis) === */
+        #wheel-rotor {
+            transform-box: fill-box;
+            transform-origin: 50% 50%;
+            will-change: transform;
+        }
+        #wheel-svg { touch-action: manipulation; }
+        #btn-spin:not(:disabled) { animation: spinBtnPulse 2s ease-in-out infinite; }
+        @keyframes spinBtnPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45); }
+            50% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #btn-spin:not(:disabled) { animation: none; }
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-blue-200 text-base">
@@ -210,22 +225,22 @@
             </div>
         </section>
 
-        <!-- SECTION 3: KUIS -->
+        <!-- SECTION 3: KUIS (SPINNER WHEEL) -->
         <section id="sec-kuis" class="hidden flex-1 flex flex-col justify-between max-w-4xl w-full mx-auto px-4 py-6">
             
-            <!-- Quiz Progress & Question Box -->
+            <!-- Spinner Wheel & Question Box (dirender oleh JavaScript) -->
             <div id="quiz-viewport" class="flex-1 flex flex-col justify-center">
                 <!-- Quiz content rendered via JavaScript -->
             </div>
 
             <!-- Quiz Navigation / Feedback Control Footer -->
-            <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <span id="quiz-question-counter" class="text-sm sm:text-base text-slate-300 font-bold">
-                    Soal 1 dari 10
+            <div class="mt-6 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+                <span id="quiz-question-counter" class="text-xs sm:text-base text-slate-300 font-bold">
+                    Soal sudah dikerjakan: 0 dari 10 &bull; Soal tersisa: 10
                 </span>
 
                 <button id="btn-next-quiz" onclick="nextQuestion()" disabled class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base rounded-xl transition shadow-lg">
-                    <span id="btn-next-quiz-text">Lanjut ke Soal Berikutnya</span>
+                    <span id="btn-next-quiz-text">PUTAR SOAL BERIKUTNYA</span>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </button>
             </div>
@@ -303,11 +318,11 @@
         // APP STATE
         let currentSection = 'opening'; // 'opening', 'materi', 'kuis', 'hasil'
         let currentSlide = 0;
-        let currentQuizIndex = 0;
+        let currentQuizIndex = 0; // (dipertahankan dari versi lama; nomor soal aktif kini disimpan di quizState.current)
         let score = 0;
-        let selectedAnswers = []; // Store chosen options
+        let selectedAnswers = []; // Store chosen options (indeks = nomor soal - 1)
         let isAudioMuted = false;
-        let shuffledQuiz = [];
+        let shuffledQuiz = []; // Kini berisi 10 soal TANPA diacak: nomor spinner = nomor soal
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
@@ -1118,8 +1133,10 @@
                 header.classList.remove('hidden');
                 progressContainer.classList.add('hidden');
                 document.getElementById('sec-hasil').classList.remove('hidden');
+                if (quizState) quizState.completed = true; // sesi kuis ini selesai; kuis berikutnya mulai baru
                 renderResults();
             }
+            saveState();
         }
 
         function startLearning() {
@@ -1157,6 +1174,7 @@
             } else {
                 nextBtnLabel.innerText = "Berikutnya";
             }
+            saveState();
         }
 
         function prevSlide() {
@@ -1315,29 +1333,439 @@
             }, 400);
         }
 
-        function startQuiz() {
-            score = 0;
-            currentQuizIndex = 0;
-            selectedAnswers = new Array(quizDataOriginal.length).fill(null);
-            
-            // Shuffle questions while preserving accurate key binding
-            shuffledQuiz = [...quizDataOriginal].sort(() => Math.random() - 0.5);
-            renderQuizQuestion();
+        /* =====================================================================
+           KUIS SPINNER WHEEL (angka 1-10)
+           Nomor yang keluar di roda = nomor soal (quizDataOriginal[nomor - 1]).
+           Soal, kunci jawaban, dan perhitungan nilai (score / selectedAnswers /
+           renderResults) tetap memakai mekanisme asli.
+           ===================================================================== */
+
+        const STORAGE_KEY = 'sk_alur_proses_spinner_v1';
+        const WHEEL_COLORS = ['#ef4444', '#f97316', '#d97706', '#65a30d', '#059669', '#0891b2', '#2563eb', '#4f46e5', '#9333ea', '#db2777'];
+        const WHEEL_CX = 200, WHEEL_CY = 210, WHEEL_R = 180;
+
+        // quizState: { available: [angka yang masih tersedia], current: nomor soal aktif | null,
+        //              phase: 'idle' | 'spinning' | 'answering' | 'answered', completed: boolean }
+        let quizState = null;
+        let wheelNumbers = [];      // angka yang sedang digambar pada roda
+        let isSpinning = false;
+        let spinToken = 0;
+        let spinTimer = null;
+        let redrawTimer = null;
+        let redrawTimer2 = null;
+
+        const prefersReducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const $id = (id) => document.getElementById(id);
+
+        /* ---------- Penyimpanan progres (sessionStorage; bertahan saat refresh) ---------- */
+        function saveState() {
+            try {
+                sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    v: 1,
+                    section: currentSection,
+                    slide: currentSlide,
+                    answers: selectedAnswers,
+                    quiz: quizState
+                }));
+            } catch (e) { /* penyimpanan tidak tersedia: aplikasi tetap berjalan */ }
         }
 
-        function renderQuizQuestion() {
-            const viewport = document.getElementById('quiz-viewport');
-            const q = shuffledQuiz[currentQuizIndex];
-            const hasAnswered = selectedAnswers[currentQuizIndex] !== null;
+        function restoreSession() {
+            let data = null;
+            try {
+                const raw = sessionStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                data = JSON.parse(raw);
+            } catch (e) { return; }
+            if (!data || data.v !== 1) return;
 
-            viewport.innerHTML = `
+            const total = quizDataOriginal.length;
+            const validAns = Array.isArray(data.answers) && data.answers.length === total &&
+                data.answers.every(a => a === null || (Number.isInteger(a) && a >= 0 && a <= 3));
+            selectedAnswers = validAns ? data.answers.slice() : new Array(total).fill(null);
+
+            const q = data.quiz;
+            if (q && Array.isArray(q.available)) {
+                let avail = [...new Set(q.available.filter(n => Number.isInteger(n) && n >= 1 && n <= total))];
+                const current = (Number.isInteger(q.current) && q.current >= 1 && q.current <= total) ? q.current : null;
+                avail = avail.filter(n => n !== current);
+                // Angka yang sudah terpilih tetapi belum dijawab (dan bukan soal aktif) dikembalikan ke roda
+                for (let n = 1; n <= total; n++) {
+                    if (n !== current && !avail.includes(n) && selectedAnswers[n - 1] === null) avail.push(n);
+                }
+                // Angka yang sudah dijawab tidak boleh tersedia lagi
+                avail = avail.filter(n => selectedAnswers[n - 1] === null).sort((a, b) => a - b);
+                const phase = current === null ? 'idle' : (selectedAnswers[current - 1] !== null ? 'answered' : 'answering');
+                quizState = { available: avail, current: current, phase: phase, completed: !!q.completed };
+            }
+
+            if (Number.isInteger(data.slide) && data.slide >= 0 && data.slide < slideMaterials.length) {
+                currentSlide = data.slide;
+            }
+
+            // Pulihkan halaman terakhir tanpa suara klik
+            const prevMuted = isAudioMuted;
+            isAudioMuted = true;
+            try {
+                if (data.section === 'materi') {
+                    goToSection('materi');
+                } else if (data.section === 'kuis') {
+                    goToSection('kuis');
+                } else if (data.section === 'hasil' && selectedAnswers.every(a => a !== null)) {
+                    shuffledQuiz = [...quizDataOriginal];
+                    recomputeScore();
+                    goToSection('hasil');
+                }
+            } finally {
+                isAudioMuted = prevMuted;
+            }
+        }
+
+        function recomputeScore() {
+            score = 0;
+            selectedAnswers.forEach((a, i) => {
+                if (a !== null && quizDataOriginal[i] && a === quizDataOriginal[i].key) score++;
+            });
+        }
+
+        function clearSpinTimers() {
+            spinToken++;
+            clearTimeout(spinTimer);
+            clearTimeout(redrawTimer);
+            clearTimeout(redrawTimer2);
+            isSpinning = false;
+        }
+
+        /* ---------- Mulai / lanjutkan kuis ---------- */
+        function startQuiz() {
+            clearSpinTimers();
+            // Urutan soal TIDAK diacak lagi: nomor yang keluar dari spinner = nomor soal
+            shuffledQuiz = [...quizDataOriginal];
+
+            if (!quizState || quizState.completed) {
+                quizState = {
+                    available: quizDataOriginal.map(q => q.id),
+                    current: null,
+                    phase: 'idle',
+                    completed: false
+                };
+                selectedAnswers = new Array(quizDataOriginal.length).fill(null);
+            } else if (quizState.phase === 'spinning') {
+                quizState.phase = 'answering'; // angka sudah dikonfirmasi terpilih
+            }
+
+            recomputeScore();
+            wheelNumbers = quizState.available.slice();
+            buildQuizSkeleton();
+            drawWheel();
+            renderQuizQuestion();
+            updateSpinnerUI();
+            saveState();
+        }
+
+        function buildQuizSkeleton() {
+            $id('quiz-viewport').innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+
+                    <!-- PANEL SPINNER -->
+                    <div id="spinner-panel" class="scroll-mt-24 bg-slate-800/90 rounded-3xl border border-slate-700/80 p-4 sm:p-6 shadow-2xl backdrop-blur-md">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-3 mb-4">
+                            <span class="text-xs sm:text-sm font-extrabold text-amber-300 bg-amber-950/70 px-3.5 py-1.5 rounded-full border border-amber-700/70">🎡 SPINNER SOAL 1–10</span>
+                            <span id="spin-status" role="status" aria-live="polite" class="text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full border"></span>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="w-full max-w-[380px] mx-auto">
+                                <svg id="wheel-svg" viewBox="0 0 400 410" class="w-full h-auto block" role="img" aria-label="Roda spinner angka soal">
+                                    <g id="wheel-rotor"></g>
+                                    <circle cx="${WHEEL_CX}" cy="${WHEEL_CY}" r="30" fill="#0f172a" stroke="#fbbf24" stroke-width="5"/>
+                                    <circle cx="${WHEEL_CX}" cy="${WHEEL_CY}" r="9" fill="#fbbf24"/>
+                                    <polygon points="178,2 222,2 200,50" fill="#fbbf24" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+
+                            <button id="btn-spin" onclick="spinWheel()" class="mt-4 w-full max-w-xs min-h-[56px] px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-slate-900 font-black text-lg rounded-2xl shadow-xl shadow-amber-600/30 transition disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed">
+                                PUTAR SPINNER
+                            </button>
+
+                            <div class="mt-4 w-full text-center bg-slate-900/80 border border-slate-700 rounded-2xl p-3">
+                                <div id="spin-result-number" class="text-5xl sm:text-6xl font-black text-amber-300 leading-none">?</div>
+                                <div id="spin-result-text" aria-live="polite" class="mt-1.5 text-sm sm:text-base font-semibold text-slate-200">Tekan tombol PUTAR SPINNER untuk mendapatkan soal</div>
+                            </div>
+
+                            <div id="spin-stats" class="mt-3 text-sm sm:text-base font-bold text-slate-200 text-center leading-relaxed"></div>
+                            <div id="number-tracker" class="mt-3 flex flex-wrap justify-center gap-1.5"></div>
+
+                            <div id="spin-finished-msg" class="hidden mt-4 w-full text-center bg-emerald-950/60 border border-emerald-700 rounded-2xl p-4 text-emerald-200 font-extrabold text-base sm:text-lg">
+                                🎉 Selamat! Anda telah menyelesaikan seluruh soal.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KARTU SOAL -->
+                    <div id="question-card" class="scroll-mt-24"></div>
+                </div>
+            `;
+        }
+
+        /* ---------- Menggambar roda (hanya angka yang masih tersedia) ---------- */
+        function polar(angleDeg, r) {
+            const a = angleDeg * Math.PI / 180;
+            return { x: WHEEL_CX + r * Math.sin(a), y: WHEEL_CY - r * Math.cos(a) };
+        }
+
+        function drawWheel() {
+            const rotor = $id('wheel-rotor');
+            if (!rotor) return;
+            rotor.style.transition = 'none';
+            rotor.style.transform = 'rotate(0deg)';
+            rotor.style.opacity = '1';
+
+            const nums = wheelNumbers;
+            const N = nums.length;
+            let html = `<circle cx="${WHEEL_CX}" cy="${WHEEL_CY}" r="190" fill="#0f172a" stroke="#fbbf24" stroke-width="6"/>`;
+
+            if (N === 0) {
+                html += `<circle cx="${WHEEL_CX}" cy="${WHEEL_CY}" r="${WHEEL_R}" fill="#1e293b" stroke="#334155" stroke-width="3"/>`;
+                html += `<text x="${WHEEL_CX}" y="${WHEEL_CY - 62}" text-anchor="middle" font-size="64" fill="#34d399">✓</text>`;
+            } else {
+                const seg = 360 / N;
+                const fontSize = N <= 2 ? 64 : N <= 4 ? 52 : N <= 6 ? 44 : N <= 8 ? 38 : 34;
+                const textR = N <= 2 ? WHEEL_R * 0.6 : WHEEL_R * 0.72;
+                nums.forEach((n, i) => {
+                    const color = WHEEL_COLORS[(n - 1) % WHEEL_COLORS.length];
+                    const a0 = i * seg, a1 = (i + 1) * seg;
+                    if (N === 1) {
+                        html += `<circle data-seg="${n}" cx="${WHEEL_CX}" cy="${WHEEL_CY}" r="${WHEEL_R}" fill="${color}" stroke="#0f172a" stroke-width="3"/>`;
+                    } else {
+                        const p0 = polar(a0, WHEEL_R), p1 = polar(a1, WHEEL_R);
+                        html += `<path data-seg="${n}" d="M ${WHEEL_CX} ${WHEEL_CY} L ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${WHEEL_R} ${WHEEL_R} 0 ${seg > 180 ? 1 : 0} 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} Z" fill="${color}" stroke="#0f172a" stroke-width="3" stroke-linejoin="round"/>`;
+                    }
+                    const mid = a0 + seg / 2;
+                    const tp = polar(mid, textR);
+                    html += `<text transform="translate(${tp.x.toFixed(2)},${tp.y.toFixed(2)}) rotate(${mid.toFixed(2)})" text-anchor="middle" dy=".35em" font-size="${fontSize}" font-weight="800" fill="#ffffff" stroke="rgba(0,0,0,0.35)" stroke-width="3" paint-order="stroke" style="font-family:Inter,sans-serif">${n}</text>`;
+                });
+            }
+            rotor.innerHTML = html;
+        }
+
+        function animatedRedraw() {
+            const rotor = $id('wheel-rotor');
+            if (!rotor) return;
+            rotor.style.transition = 'opacity .2s';
+            rotor.style.opacity = '0';
+            redrawTimer2 = setTimeout(() => {
+                if (!quizState || quizState.phase === 'spinning') return;
+                wheelNumbers = quizState.available.slice();
+                drawWheel();
+                rotor.style.opacity = '0';
+                rotor.getBoundingClientRect();
+                rotor.style.transition = 'opacity .3s';
+                rotor.style.opacity = '1';
+            }, 220);
+        }
+
+        /* ---------- Proses memutar spinner ---------- */
+        function spinWheel() {
+            if (!quizState || quizState.phase !== 'idle' || isSpinning) return;
+            if (quizState.available.length === 0) return;
+
+            playSound('click');
+            clearTimeout(redrawTimer);
+            clearTimeout(redrawTimer2);
+
+            // Roda digambar ulang dari daftar angka yang BENAR-BENAR masih tersedia
+            wheelNumbers = quizState.available.slice().sort((a, b) => a - b);
+            drawWheel();
+            const rotor = $id('wheel-rotor');
+            const N = wheelNumbers.length;
+
+            // 1-2. Pilih satu angka acak dari angka yang belum pernah terpilih
+            const idx = Math.floor(Math.random() * N);
+            const picked = wheelNumbers[idx];
+
+            // Hasil dikonfirmasi & disimpan lebih dulu (anti-duplikasi, aman saat refresh);
+            // tampilan roda tetap memuat angka ini sampai animasi selesai.
+            quizState.available = quizState.available.filter(n => n !== picked);
+            quizState.current = picked;
+            quizState.phase = 'spinning';
+            isSpinning = true;
+            saveState();
+            renderQuizQuestion();   // soal disembunyikan selama roda berputar
+            updateSpinnerUI();
+
+            // 3. Arahkan animasi ke segmen angka terpilih
+            const reduce = prefersReducedMotion();
+            const seg = 360 / N;
+            const jitter = (Math.random() - 0.5) * seg * 0.6;           // tetap di dalam segmen
+            const spins = reduce ? 2 : 5 + Math.floor(Math.random() * 3);
+            const target = spins * 360 - ((idx + 0.5) * seg + jitter);
+            const dur = reduce ? 1.4 : 4.8;
+
+            rotor.getBoundingClientRect(); // paksa reflow agar transisi mulai dari 0 derajat
+            rotor.style.transition = `transform ${dur}s cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
+            rotor.style.transform = `rotate(${target}deg)`;
+
+            // 4. Tunggu animasi selesai
+            const token = ++spinToken;
+            spinTimer = setTimeout(() => finishSpin(token, picked), dur * 1000 + 200);
+        }
+
+        function finishSpin(token, picked) {
+            if (token !== spinToken || !quizState) return;
+            isSpinning = false;
+            if (quizState.phase !== 'spinning' || quizState.current !== picked) return;
+
+            quizState.phase = 'answering';
+            saveState();
+
+            const segEl = document.querySelector(`#wheel-rotor [data-seg="${picked}"]`);
+            if (segEl) { segEl.setAttribute('stroke', '#ffffff'); segEl.setAttribute('stroke-width', '6'); }
+
+            playSound('correct');
+            updateSpinnerUI();
+            renderQuizQuestion();
+            scrollToQuiz('question-card');
+
+            // Setelah hasil terlihat, roda digambar ulang tanpa angka yang sudah terpilih
+            redrawTimer = setTimeout(animatedRedraw, 1300);
+        }
+
+        function scrollToQuiz(id) {
+            const el = $id(id);
+            if (el && window.innerWidth < 1024) {
+                el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+            }
+        }
+
+        /* ---------- Tampilan status spinner ---------- */
+        function remainingCount() {
+            // selama roda berputar, angka terpilih belum "diumumkan"
+            return quizState.available.length + (quizState.phase === 'spinning' ? 1 : 0);
+        }
+
+        function updateSpinnerUI() {
+            if (!quizState) return;
+            const total = quizDataOriginal.length;
+            const ph = quizState.phase;
+            const remaining = remainingCount();
+            const done = total - remaining;
+
+            // Status roda
+            const st = $id('spin-status');
+            if (st) {
+                const map = {
+                    idle: ['Siap memutar roda', 'text-blue-300 bg-blue-950/70 border-blue-800'],
+                    spinning: ['Roda sedang berputar…', 'text-amber-300 bg-amber-950/70 border-amber-700'],
+                    answering: [`Jawab soal nomor ${quizState.current}`, 'text-cyan-300 bg-cyan-950/70 border-cyan-800'],
+                    answered: ['Jawaban tersimpan ✓', 'text-emerald-300 bg-emerald-950/70 border-emerald-800']
+                };
+                const m = map[ph];
+                st.textContent = m[0];
+                st.className = `text-xs sm:text-sm font-bold px-3 py-1.5 rounded-full border ${m[1]}`;
+            }
+
+            // Tombol putar
+            const btn = $id('btn-spin');
+            if (btn) {
+                btn.classList.toggle('hidden', remaining === 0);
+                btn.disabled = (ph !== 'idle');
+                btn.textContent = ph === 'spinning' ? 'MEMUTAR…' : 'PUTAR SPINNER';
+            }
+
+            // Hasil putaran
+            const rn = $id('spin-result-number');
+            const rt = $id('spin-result-text');
+            if (rn && rt) {
+                if (ph === 'spinning') {
+                    rn.textContent = '…';
+                    rt.textContent = 'Roda sedang berputar…';
+                } else if (ph === 'answering' || ph === 'answered') {
+                    rn.textContent = quizState.current;
+                    rt.textContent = `Anda mendapatkan soal nomor ${quizState.current}!`;
+                } else {
+                    rn.textContent = remaining === 0 ? '✓' : '?';
+                    rt.textContent = 'Tekan tombol PUTAR SPINNER untuk mendapatkan soal';
+                }
+            }
+
+            // Jumlah soal
+            const stats = $id('spin-stats');
+            if (stats) {
+                stats.innerHTML = `Soal sudah dikerjakan: <span class="text-amber-300">${done} dari ${total}</span><br>Soal tersisa: <span class="text-amber-300">${remaining}</span>`;
+            }
+
+            // Penanda nomor 1-10
+            const tracker = $id('number-tracker');
+            if (tracker) {
+                let h = '';
+                for (let n = 1; n <= total; n++) {
+                    const ans = selectedAnswers[n - 1];
+                    const hiddenPick = (ph === 'spinning' && n === quizState.current);
+                    let cls = 'bg-slate-900 border-slate-700 text-slate-400';
+                    if (!hiddenPick && ans !== null) {
+                        cls = ans === quizDataOriginal[n - 1].key
+                            ? 'bg-emerald-900/80 border-emerald-500 text-emerald-200'
+                            : 'bg-rose-900/80 border-rose-500 text-rose-200';
+                    } else if (!hiddenPick && n === quizState.current) {
+                        cls = 'bg-cyan-900/80 border-cyan-400 text-cyan-100 ring-2 ring-cyan-400';
+                    }
+                    h += `<span class="w-8 h-8 sm:w-9 sm:h-9 inline-flex items-center justify-center rounded-lg border text-xs sm:text-sm font-extrabold ${cls}">${n}</span>`;
+                }
+                tracker.innerHTML = h;
+            }
+
+            // Pesan selesai
+            const fin = $id('spin-finished-msg');
+            if (fin) fin.classList.toggle('hidden', !(remaining === 0 && ph === 'answered'));
+
+            // Footer: penghitung & tombol lanjut
+            const counter = $id('quiz-question-counter');
+            if (counter) counter.innerHTML = `Soal sudah dikerjakan: ${done} dari ${total} &bull; Soal tersisa: ${remaining}`;
+            const nextBtn = $id('btn-next-quiz');
+            if (nextBtn) nextBtn.disabled = (ph !== 'answered');
+            const nextText = $id('btn-next-quiz-text');
+            if (nextText) {
+                nextText.innerText = (quizState.available.length === 0) ? "Lihat Hasil Nilai" : "PUTAR SOAL BERIKUTNYA";
+            }
+        }
+
+        /* ---------- Kartu soal (nomor soal = angka hasil putaran) ---------- */
+        function renderQuizQuestion() {
+            const card = $id('question-card');
+            if (!card || !quizState) return;
+
+            const n = quizState.current;
+            const ph = quizState.phase;
+
+            // Soal belum boleh tampil sebelum angka resmi terpilih
+            if (n === null || ph === 'idle' || ph === 'spinning') {
+                card.innerHTML = `
+                    <div class="bg-slate-800/60 rounded-3xl border-2 border-dashed border-slate-700 p-8 text-center flex flex-col items-center justify-center min-h-[220px]">
+                        <div class="text-5xl mb-3">${ph === 'spinning' ? '🎡' : '🎯'}</div>
+                        <p class="text-base sm:text-lg font-bold text-slate-300">${ph === 'spinning' ? 'Soal akan muncul setelah roda berhenti…' : 'Soal akan muncul di sini setelah roda berhenti.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const q = shuffledQuiz[n - 1];
+            const chosen = selectedAnswers[n - 1];
+            const hasAnswered = chosen !== null;
+
+            card.innerHTML = `
                 <div class="bg-slate-800/90 rounded-3xl border border-slate-700/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md">
+                    <!-- Notifikasi nomor soal -->
+                    <div class="mb-4 text-center bg-amber-950/50 border border-amber-700/60 text-amber-200 font-extrabold text-sm sm:text-base rounded-xl py-2 px-3">
+                        🎯 Anda mendapatkan soal nomor ${n}!
+                    </div>
+
                     <!-- Header inside quiz -->
-                    <div class="flex items-center justify-between border-b border-slate-700/80 pb-3.5 mb-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/80 pb-3.5 mb-5">
                         <span class="text-xs sm:text-sm font-extrabold text-blue-400 bg-blue-950 px-3.5 py-1.5 rounded-full border border-blue-800">
-                            Soal ${currentQuizIndex + 1} dari ${shuffledQuiz.length}
+                            Soal Nomor ${n}
                         </span>
-                        <span class="text-xs sm:text-sm font-medium text-slate-300">Pilihlah satu jawaban yang paling tepat</span>
+                        <span class="text-xs sm:text-sm font-bold ${hasAnswered ? 'text-emerald-300' : 'text-slate-300'}">${hasAnswered ? 'Jawaban tersimpan ✓' : 'Belum dijawab – pilih satu jawaban'}</span>
                     </div>
 
                     <!-- Question Text -->
@@ -1347,9 +1775,8 @@
                     <div class="grid grid-cols-1 gap-3.5 mb-6">
                         ${q.options.map((opt, optIdx) => {
                             let btnStyle = "bg-slate-900/80 hover:bg-slate-700/80 border-slate-700 text-slate-100 font-medium";
-                            
+
                             if (hasAnswered) {
-                                const chosen = selectedAnswers[currentQuizIndex];
                                 if (optIdx === q.key) {
                                     btnStyle = "bg-emerald-950/90 border-emerald-500 text-emerald-200 font-bold";
                                 } else if (optIdx === chosen) {
@@ -1363,10 +1790,10 @@
                                 <button 
                                     onclick="selectAnswer(${optIdx})" 
                                     ${hasAnswered ? 'disabled' : ''}
-                                    class="w-full text-left p-4 sm:p-4.5 rounded-xl border-2 transition-all duration-200 text-base sm:text-lg flex items-center justify-between ${btnStyle}">
+                                    class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 text-base sm:text-lg flex items-center justify-between gap-2 ${btnStyle}">
                                     <span>${opt}</span>
-                                    ${hasAnswered && optIdx === q.key ? '<span class="text-emerald-400 font-black text-sm sm:text-base">✓ BENAR</span>' : ''}
-                                    ${hasAnswered && optIdx === selectedAnswers[currentQuizIndex] && optIdx !== q.key ? '<span class="text-rose-400 font-black text-sm sm:text-base">✕ SALAH</span>' : ''}
+                                    ${hasAnswered && optIdx === q.key ? '<span class="text-emerald-400 font-black text-sm sm:text-base whitespace-nowrap">✓ BENAR</span>' : ''}
+                                    ${hasAnswered && optIdx === chosen && optIdx !== q.key ? '<span class="text-rose-400 font-black text-sm sm:text-base whitespace-nowrap">✕ SALAH</span>' : ''}
                                 </button>
                             `;
                         }).join('')}
@@ -1374,34 +1801,24 @@
 
                     <!-- Explanation Banner (Shown after answering) -->
                     ${hasAnswered ? `
-                        <div class="p-4 sm:p-5 rounded-xl border ${selectedAnswers[currentQuizIndex] === q.key ? 'bg-emerald-950/60 border-emerald-800 text-emerald-100' : 'bg-rose-950/60 border-rose-800 text-rose-100'}">
+                        <div class="p-4 sm:p-5 rounded-xl border ${chosen === q.key ? 'bg-emerald-950/60 border-emerald-800 text-emerald-100' : 'bg-rose-950/60 border-rose-800 text-rose-100'}">
                             <div class="font-extrabold text-xs sm:text-sm uppercase tracking-wider mb-1">
-                                ${selectedAnswers[currentQuizIndex] === q.key ? '✓ JAWABAN KAMU BENAR!' : '✕ JAWABAN KURANG TEPAT'}
+                                ${chosen === q.key ? '✓ JAWABAN KAMU BENAR!' : '✕ JAWABAN KURANG TEPAT'}
                             </div>
                             <p class="text-sm sm:text-base leading-relaxed">${q.explanation}</p>
                         </div>
                     ` : ''}
                 </div>
             `;
-
-            // Footer navigation status
-            document.getElementById('quiz-question-counter').innerText = `Soal ${currentQuizIndex + 1} dari ${shuffledQuiz.length}`;
-            const nextBtn = document.getElementById('btn-next-quiz');
-            nextBtn.disabled = !hasAnswered;
-
-            const nextText = document.getElementById('btn-next-quiz-text');
-            if (currentQuizIndex === shuffledQuiz.length - 1) {
-                nextText.innerText = "Lihat Hasil Nilai";
-            } else {
-                nextText.innerText = "Lanjut ke Soal Berikutnya";
-            }
         }
 
         function selectAnswer(optionIndex) {
-            if (selectedAnswers[currentQuizIndex] !== null) return;
+            if (!quizState || quizState.phase !== 'answering') return;
+            const idx = quizState.current - 1;
+            if (selectedAnswers[idx] !== null) return;
 
-            selectedAnswers[currentQuizIndex] = optionIndex;
-            const q = shuffledQuiz[currentQuizIndex];
+            selectedAnswers[idx] = optionIndex;
+            const q = shuffledQuiz[idx];
 
             if (optionIndex === q.key) {
                 score++;
@@ -1410,21 +1827,39 @@
                 playSound('wrong');
             }
 
+            quizState.phase = 'answered';
+            saveState();
             renderQuizQuestion();
+            updateSpinnerUI();
         }
 
         function nextQuestion() {
             playSound('click');
-            if (currentQuizIndex < shuffledQuiz.length - 1) {
-                currentQuizIndex++;
-                renderQuizQuestion();
-            } else {
+            if (!quizState || quizState.phase !== 'answered') return;
+
+            if (quizState.available.length === 0) {
+                // Semua angka habis -> lanjut ke halaman hasil yang sudah ada
                 goToSection('hasil');
+                return;
             }
+
+            // Aktifkan kembali spinner dengan angka yang tersisa
+            clearTimeout(redrawTimer);
+            clearTimeout(redrawTimer2);
+            quizState.current = null;
+            quizState.phase = 'idle';
+            wheelNumbers = quizState.available.slice();
+            drawWheel();
+            renderQuizQuestion();
+            updateSpinnerUI();
+            saveState();
+            scrollToQuiz('spinner-panel');
         }
 
         function restartQuiz() {
             playSound('click');
+            clearSpinTimers();
+            quizState = null; // sesi baru
             startQuiz();
             goToSection('kuis');
         }
@@ -1504,6 +1939,9 @@
                 canvas.height = window.innerHeight;
             }
         });
+
+        // Pulihkan progres jika halaman di-refresh di tengah sesi
+        restoreSession();
     </script>
 </body>
 </html>
